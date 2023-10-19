@@ -24,7 +24,9 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
-
+const userCollection = client.db("goodtools").collection("tools");
+    // Connect the client to the server	(optional starting in v4.7)
+    await client.connect();
     
     
     // Send a ping to confirm a successful connection
