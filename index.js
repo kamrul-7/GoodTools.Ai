@@ -26,7 +26,9 @@ async function run() {
     await client.connect();
     
     const categoryCollection = client.db("goodtools").collection ("category");
+    const usersCollection = client.db("goodtools").collection ("users");
     const subcategoryCollection = client.db("goodtools").collection ("subcategory");
+    
     // Category Post
 
     app.post("/category", async (req, res) => {
@@ -34,10 +36,46 @@ async function run() {
       const result = await categoryCollection.insertOne(item);
       res.send(result);
     });
+    
+    app.post("/users", async (req, res) => {
+      const item = req.body;
+      const result = await usersCollection.insertOne(item);
+      res.send(result);
+    });
 
+        // SunCategory Post
+    app.post("/subcategory", async (req, res) => {
+      const item = req.body;
+      const result = await subcategoryCollection.insertOne(item);
+      res.send(result);
+    });
+    
 
+    
+    app.get('/category', async (req, res) => {
+      const result = await categoryCollection.find().toArray();
+      res.send(result);
+    });
 
+    app.get('/users', async (req, res) => {
+      const result = await usersCollection.find().toArray();
+      res.send(result);
+    });
 
+    app.delete("/users/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await usersCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    app.delete("/category/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await categoryCollection.deleteOne(query);
+      res.send(result);
+    });
+    
 
 
 
