@@ -21,10 +21,14 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     await client.connect();
-    
+
+
     const categoryCollection = client.db("goodtools").collection("category");
     const usersCollection = client.db("goodtools").collection("users");
     const subcategoryCollection = client.db("goodtools").collection("subcategory");
+    const toolsCollection = client.db("goodtools").collection("tools");
+
+    // Category Post
 
     app.post("/category", async (req, res) => {
       const item = req.body;
@@ -38,30 +42,84 @@ async function run() {
       res.send(result);
     });
 
-    app.post("/subcategory", async (req, res) => {
+    app.post("/users", async (req, res) => {
       const item = req.body;
-      const result = await subcategoryCollection.insertOne(item);
+      const result = await usersCollection.insertOne(item);
       res.send(result);
     });
 
-    app.get('/category', async (req, res) => {
-      const result = await categoryCollection.find().toArray();
+    // SunCategory Post
+    app.post("/subcategory", async (req, res) => {
+      const item = req.body;
+      const result = await subcategoryCollection.insertOne(item);
+      console.log(result);
       res.send(result);
     });
+
+
+
+
+    app.get('/category', async (req, res) => {
+        const categories = await categoryCollection.find().toArray();
+        results = [];
+        Promise.all(categories.map(async (data) => {
+          const pipelineSub = [
+            {
+              $match: {
+                category: data.Title
+              }
+            },
+            {
+              $count: "count"
+            }
+          ];
+          const subCategoriesCount = await subcategoryCollection.aggregate(pipelineSub).toArray();
+
+          let c = 0;
+          if (subCategoriesCount.length > 0) {
+            c = subCategoriesCount[0].count;
+          }
+
+          const pipelineTools = [
+            {
+              $match: {
+                category: data.Title
+              }
+            },
+            {
+              $count: "count"
+            }
+          ];
+          const toolsCount = await subcategoryCollection.aggregate(pipelineTools).toArray();
+
+          let ct = 0;
+          if (toolsCount.length > 0) {
+            ct = toolsCount[0].count;
+          }
+
+          return { ...data, subCount: c, toolsCount: ct};
+        }))
+        .then(data =>{
+          results = [...data]
+          console.log(results);
+          res.send(results);
+        } )
+    });
+
 
     app.get('/users', async (req, res) => {
       const result = await usersCollection.find().toArray();
       res.send(result);
     });
 
+    app.get('/subcategory', async (req, res) => {
+      const result = await subcategoryCollection.find().toArray();
+
+      res.send(result);
+    });
+
     app.delete('/users/:id', async (req, res) => {
       const userId = req.params.id;
-      try {
-        if (!ObjectId.isValid(userId)) {
-          return res.status(400).json({ error: 'Invalid user ID' });
-        }
-
-        const result = await usersCollection.deleteOne({ _id: ObjectId(userId) });
         if (result.deletedCount === 1) {
           return res.json({ message: 'User deleted successfully' });
         } else {
@@ -73,11 +131,6 @@ async function run() {
       }
     });
 
-
-    // Update user endpoint
-    app.put('/users/:id', async (req, res) => {
-      const userId = req.params.id;
-      const updateData = req.body;
 
 
 
