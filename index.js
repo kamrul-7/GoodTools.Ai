@@ -42,7 +42,6 @@ async function run() {
     const usersCollection = client.db("goodtools").collection("users");
     const subcategoryCollection = client.db("goodtools").collection("subcategory");
     const toolsCollection = client.db("goodtools").collection("tools");
-    const newsCollection = client.db("goodtools").collection("news");
 
     // Category Post
 
@@ -81,7 +80,7 @@ async function run() {
           }
         }))
           .then(async () => {
-            const data = { ...req.body, image: req.file ? req.file.path.replace(/uploads\\/g, '') : '', parentCategories: parentCategory }
+            const data = { ...req.body, image: req.file ? req.file.path.replace(/uploads\\/g, '') : '', parentCategories : parentCategory }
             const result = await toolsCollection.insertOne(data);
             console.log(result);
             res.send(result)
@@ -101,7 +100,7 @@ async function run() {
 
     // All gets starts from here
 
-    app.get('/test', async (req, res) => {
+    app.get('/test', async (req,res)=>{
       const result = await toolsCollection.aggregate([
         {
           $unwind: "$parentCategories" // Unwind the parentCategories array to create one document per category
@@ -122,7 +121,7 @@ async function run() {
       let totalToolsCount = [];
 
       // Get the nuber of tool for all category
-      totalToolsCount = await toolsCollection.aggregate([
+       totalToolsCount = await toolsCollection.aggregate([
         {
           $unwind: "$parentCategories" // Unwind the parentCategories array to create one document per category
         },
@@ -158,18 +157,18 @@ async function run() {
         // Find the number of tools for each category
         const stat = totalToolsCount.find(category => category._id === data.Title);
         let ct = 0;
-        if (stat) {
+        if(stat){
           ct = stat.count
         }
 
         // add the result and return the result
         return { ...data, subCount: c, toolsCount: ct };
       }))
-        .then(data => {
+      .then(data => {
           const results = [...data]
           console.log(results);
           res.send(results);
-        })
+      })
     });
 
 
@@ -179,41 +178,9 @@ async function run() {
     });
 
     app.get('/subcategory', async (req, res) => {
-      const subCategories = await subcategoryCollection.find().toArray();
-      // Get the nuber of tool for all category
-      totalToolsCount = await toolsCollection.aggregate([
-        {
-          $unwind: "$SubCategory" // Unwind the SubCategories array to create one document per category
-        },
-        {
-          $group: {
-            _id: "$SubCategory", // Group by category
-            count: { $sum: 1 }   // Count the number of documents in each group
-          }
-        }
-      ]).toArray()
-      await Promise.all(subCategories.map(async (data) => {
-
-        // Find the number of tools for each category
-        const stat = totalToolsCount.find(category => category._id === data.Title);
-        let ct = 0;
-        if (stat) {
-          ct = stat.count
-        }
-
-        // add the result and return the result
-        return { ...data, toolsCount: ct };
-      }))
-        .then(data => {
-          const results = [...data]
-          console.log(results);
-          res.send(results);
-        })
-
-
-      // const result = await subcategoryCollection.find().toArray();
-      // console.log(result);
-      // res.send(result);
+      const result = await subcategoryCollection.find().toArray();
+      console.log(result);
+      res.send(result);
     });
 
     app.get('/tools', async (req, res) => {
@@ -243,7 +210,42 @@ async function run() {
       const result = await categoryCollection.deleteOne(query);
       res.send(result);
     });
-
+  
+    app.put("/category/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const updatedCategory = req.body; // Assumes the request body contains updated category data
+    console.log(updatedCategory);
+      try {
+        const result = await categoryCollection.updateOne(query, { $set: updatedCategory });
+        if (result.matchedCount > 0) {
+          res.status(200).json({ message: "Category Updated Successfully" });
+        } else {
+          res.status(404).json({ message: "Category not found" });
+        }
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal Server Error", error: error.message });
+      }
+    });
+    app.put("/subcategory/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const updatedCategory = req.body; // Assumes the request body contains updated category data
+    console.log(updatedCategory);
+      try {
+        const result = await subcategoryCollection.updateOne(query, { $set: updatedCategory });
+        if (result.matchedCount > 0) {
+          res.status(200).json({ message: "Category Updated Successfully" });
+        } else {
+          res.status(404).json({ message: "Category not found" });
+        }
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal Server Error", error: error.message });
+      }
+    });
+    
 
 
 
