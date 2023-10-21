@@ -91,7 +91,7 @@ async function run() {
     });
 
     app.post("/newnews", upload.single('image'), async (req, res) => {
-      const data = { ...req.body, image: req.file ? req.file.path.replace(/uploads\\/g, '') : ''}
+      const data = { ...req.body, image: req.file ? req.file.path.replace(/uploads\\/g, '') : '' }
       console.log(data);
       const result = await newsCollection.insertOne(data);
       console.log(result);
@@ -179,9 +179,41 @@ async function run() {
     });
 
     app.get('/subcategory', async (req, res) => {
-      const result = await subcategoryCollection.find().toArray();
-      console.log(result);
-      res.send(result);
+      const subCategories = await subcategoryCollection.find().toArray();
+      // Get the nuber of tool for all category
+      totalToolsCount = await toolsCollection.aggregate([
+        {
+          $unwind: "$SubCategory" // Unwind the SubCategories array to create one document per category
+        },
+        {
+          $group: {
+            _id: "$SubCategory", // Group by category
+            count: { $sum: 1 }   // Count the number of documents in each group
+          }
+        }
+      ]).toArray()
+      await Promise.all(subCategories.map(async (data) => {
+
+        // Find the number of tools for each category
+        const stat = totalToolsCount.find(category => category._id === data.Title);
+        let ct = 0;
+        if (stat) {
+          ct = stat.count
+        }
+
+        // add the result and return the result
+        return { ...data, toolsCount: ct };
+      }))
+        .then(data => {
+          const results = [...data]
+          console.log(results);
+          res.send(results);
+        })
+
+
+      // const result = await subcategoryCollection.find().toArray();
+      // console.log(result);
+      // res.send(result);
     });
 
     app.get('/tools', async (req, res) => {
