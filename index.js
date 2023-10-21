@@ -184,6 +184,12 @@ async function run() {
       res.send(result);
     });
 
+    app.get('/tools', async (req, res) => {
+      const result = await toolsCollection.find().toArray();
+      console.log(result);
+      res.send(result);
+    });
+
     app.get('/news', async (req, res) => {
       const result = await newsCollection.find().toArray();
       console.log(result);
