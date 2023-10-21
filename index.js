@@ -89,6 +89,15 @@ async function run() {
 
     });
 
+    app.post("/newnews", upload.single('image'), async (req, res) => {
+      const data = { ...req.body, image: req.file ? req.file.path.replace(/uploads\\/g, '') : '' }
+      console.log(data);
+      const result = await newsCollection.insertOne(data);
+      console.log(result);
+      res.send(result)
+
+    });
+
     // All gets starts from here
 
     app.get('/test', async (req,res)=>{
@@ -170,6 +179,18 @@ async function run() {
 
     app.get('/subcategory', async (req, res) => {
       const result = await subcategoryCollection.find().toArray();
+      console.log(result);
+      res.send(result);
+    });
+
+    app.get('/tools', async (req, res) => {
+      const result = await toolsCollection.find().toArray();
+      console.log(result);
+      res.send(result);
+    });
+
+    app.get('/news', async (req, res) => {
+      const result = await newsCollection.find().toArray();
       console.log(result);
       res.send(result);
     });
