@@ -195,7 +195,8 @@ async function run() {
       const result = await usersCollection.find().toArray();
       res.send(result);
     });
-
+    
+    
     app.get('/subcategory', async (req, res) => {
       const result = await subcategoryCollection.find().toArray();
       console.log(result);
