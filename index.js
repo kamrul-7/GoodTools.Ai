@@ -202,25 +202,20 @@ async function run() {
       res.send(result);
     });
 
-    app.delete('/users/:id', async (req, res) => {
-      const userId = req.params.id;
+    // All delets are here
 
-      try {
-        if (!ObjectId.isValid(userId)) {
-          return res.status(400).json({ error: 'Invalid user ID' });
-        }
+    app.delete("/users/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await usersCollection.deleteOne(query);
+      res.send(result);
+    });
 
-        const result = await usersCollection.deleteOne({ _id: ObjectId(userId) });
-
-        if (result.deletedCount === 1) {
-          return res.json({ message: 'User deleted successfully' });
-        } else {
-          return res.status(404).json({ error: 'User not found' });
-        }
-      } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: 'Internal server error' });
-      }
+    app.delete("/category/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await categoryCollection.deleteOne(query);
+      res.send(result);
     });
 
 
