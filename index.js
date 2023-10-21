@@ -189,7 +189,42 @@ async function run() {
       const result = await categoryCollection.deleteOne(query);
       res.send(result);
     });
-
+  
+    app.put("/category/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const updatedCategory = req.body; // Assumes the request body contains updated category data
+    console.log(updatedCategory);
+      try {
+        const result = await categoryCollection.updateOne(query, { $set: updatedCategory });
+        if (result.matchedCount > 0) {
+          res.status(200).json({ message: "Category Updated Successfully" });
+        } else {
+          res.status(404).json({ message: "Category not found" });
+        }
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal Server Error", error: error.message });
+      }
+    });
+    app.put("/subcategory/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const updatedCategory = req.body; // Assumes the request body contains updated category data
+    console.log(updatedCategory);
+      try {
+        const result = await subcategoryCollection.updateOne(query, { $set: updatedCategory });
+        if (result.matchedCount > 0) {
+          res.status(200).json({ message: "Category Updated Successfully" });
+        } else {
+          res.status(404).json({ message: "Category not found" });
+        }
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal Server Error", error: error.message });
+      }
+    });
+    
 
 
 
