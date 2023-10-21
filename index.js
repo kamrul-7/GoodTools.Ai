@@ -5,9 +5,22 @@ const { ObjectId } = require('mongodb');
 const { MongoClient, ServerApiVersion } = require('mongodb');
 const port = 3000
 
+
+const multer  = require('multer')
 app.use(cors());
 app.use(express.json());
+app.use('/uploads/', express.static('uploads'))
 
+const storage = multer.diskStorage({
+  destination : function(req, file, cb){
+    cb(null, './uploads')
+  },
+  filename : function(req, file, cb){
+    cb(null, new Date().toISOString().replace(/:/g, '-') + file.originalname)
+  }
+})
+const upload = multer({ storage:storage })
+console.log()
 
 const uri = "mongodb+srv://goodtoolsai:aitoolsgood@cluster0.jjqth1v.mongodb.net/?retryWrites=true&w=majority";
 
@@ -52,8 +65,20 @@ async function run() {
       res.send(result);
     });
 
+    app.post("/newtool", upload.single('image'), async (req, res) => {
+      const subs = req.body.subCategory.split(',');
+      req.body.subCategory = subs;
+      const data = {...req.body, image: req.file ? req.file.path.replace(/uploads\\/g, '') : ''}
+      const result = await toolsCollection.insertOne(data);
+      console.log(result);
+      res.send(result)
+    });
 
 
+    app.get('/image/:name', (req, res) =>{
+      console.log('./uploads/'+req.params.name);
+      res.send('uploads/'+req.params.name)
+    })
 
     app.get('/category', async (req, res) => {
         const categories = await categoryCollection.find().toArray();
@@ -86,7 +111,7 @@ async function run() {
               $count: "count"
             }
           ];
-          const toolsCount = await subcategoryCollection.aggregate(pipelineTools).toArray();
+          const toolsCount = await toolsCollection.aggregate(pipelineTools).toArray();
 
           let ct = 0;
           if (toolsCount.length > 0) {
