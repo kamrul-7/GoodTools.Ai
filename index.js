@@ -256,6 +256,15 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/counts", async (req, res) => {
+      const totalCategories = await categoryCollection.countDocuments();
+      const totalSubCategories = await subcategoryCollection.countDocuments();
+      const totalTools = await toolsCollection.countDocuments();
+      const totalNews = await newsCollection.countDocuments();
+      const result = {totalCategories : totalCategories, totalSubCategories : totalSubCategories, totalTools : totalTools, totalNews : totalNews};
+      res.send(result);
+    });
+
     // All delets are here
 
     app.delete("/users/:id", async (req, res) => {
