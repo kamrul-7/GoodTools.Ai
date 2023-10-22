@@ -42,6 +42,7 @@ async function run() {
     const usersCollection = client.db("goodtools").collection("users");
     const subcategoryCollection = client.db("goodtools").collection("subcategory");
     const toolsCollection = client.db("goodtools").collection("tools");
+    const newsCollection = client.db("goodtools").collection("news");
 
     // Category Post
 
@@ -95,6 +96,18 @@ async function run() {
       const result = await newsCollection.insertOne(data);
       console.log(result);
       res.send(result)
+
+    });
+
+    app.post("/getuser", async (req, res) => {
+       const result = await usersCollection.findOne({email : req.body.email, password : req.body.password});
+       let user = null;
+       if(result){
+         user = {name : result.userName, email: result.email, role : result.userType, stat : true}
+       } else{
+        user = {stat : false};
+       }
+       res.send(user)
 
     });
 
