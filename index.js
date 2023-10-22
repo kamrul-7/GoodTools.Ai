@@ -221,6 +221,12 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/subtools/:SubCategory", async (req, res) => {
+      const SubCategory = req.params.SubCategory;
+      const result = await toolsCollection.find({SubCategory: SubCategory}).toArray();
+      res.send(result);
+    });
+
     // All delets are here
 
     app.delete("/users/:id", async (req, res) => {
