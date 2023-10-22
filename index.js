@@ -128,6 +128,19 @@ async function run() {
       console.log(result);
     })
 
+    app.get('/sublist', async (req,res)=>{
+      const result = await subcategoryCollection.aggregate([
+        {
+          $group: {
+            _id: '$category',
+            SubCategories: { $addToSet: "$SubCategory" }
+          }
+        }
+      ]).toArray();
+      console.log(result);
+      res.send(result)
+    })
+
     // Get all categories
     app.get('/category', async (req, res) => {
       const categories = await categoryCollection.find().toArray();
