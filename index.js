@@ -286,6 +286,30 @@ async function run() {
         res.status(500).json({ message: "Internal Server Error", error: error.message });
       }
     });
+    app.put("/users/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const updatedUser = req.body; // Assumes the request body contains updated category data
+    console.log(updatedUser);
+      try {
+        const result = await usersCollection.updateOne(query, { $set: updatedUser });
+        if (result.matchedCount > 0) {
+          res.status(200).json({ message: "Category Updated Successfully" });
+        } else {
+          res.status(404).json({ message: "Category not found" });
+        }
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal Server Error", error: error.message });
+      }
+    });
+    app.get('/news/:id', async (req, res) => {
+      const id = req.params.id;
+      console.log(id);
+      const query = { _id: new ObjectId(id) }; // Use ObjectId to convert the id parameter
+      const result = await newsCollection.findOne(query);
+      res.send(result);
+    });
     
 
 
