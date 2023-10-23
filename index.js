@@ -250,6 +250,15 @@ async function run() {
       res.send(result);
     });
 
+
+      app.get("/news/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await newsCollection.findOne(query);
+      res.send(result);
+    });
+    
+
     app.get("/subtools/:SubCategory", async (req, res) => {
       const SubCategory = req.params.SubCategory;
       const result = await toolsCollection.find({SubCategory: SubCategory}).toArray();
