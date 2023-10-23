@@ -51,6 +51,34 @@ async function run() {
       res.send(result);
     });
 
+    app.delete("/category/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await categoryCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    app.delete('/users/:id', async (req, res) => {
+      const userId = req.params.id;
+
+      try {
+        if (!ObjectId.isValid(userId)) {
+          return res.status(400).json({ error: 'Invalid user ID' });
+        }
+
+        const result = await usersCollection.deleteOne({ _id: ObjectId(userId) });
+
+        if (result.deletedCount === 1) {
+          return res.json({ message: 'User deleted successfully' });
+        } else {
+          return res.status(404).json({ error: 'User not found' });
+        }
+      } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: 'Internal server error' });
+      }
+    });
+
     app.post("/users", async (req, res) => {
       const item = req.body;
       const result = await usersCollection.insertOne(item);
@@ -193,7 +221,8 @@ async function run() {
       const result = await usersCollection.find().toArray();
       res.send(result);
     });
-
+    
+    
     app.get('/subcategory', async (req, res) => {
       const result = await subcategoryCollection.find().toArray();
       res.send(result);
@@ -209,7 +238,19 @@ async function run() {
       res.send(result);
     });
 
+
     app.get("/sub/:SubCategory", async (req, res) => {
+
+      app.get("/news/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await newsCollection.findOne(query);
+      res.send(result);
+    });
+    
+
+    app.get("/subtools/:SubCategory", async (req, res) => {
+
       const SubCategory = req.params.SubCategory;
       const result = await subcategoryCollection.find({Title: SubCategory}).toArray();
       res.send(result);
@@ -271,6 +312,30 @@ async function run() {
         console.error(error);
         res.status(500).json({ message: "Internal Server Error", error: error.message });
       }
+    });
+    app.put("/users/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const updatedUser = req.body; // Assumes the request body contains updated category data
+    console.log(updatedUser);
+      try {
+        const result = await usersCollection.updateOne(query, { $set: updatedUser });
+        if (result.matchedCount > 0) {
+          res.status(200).json({ message: "Category Updated Successfully" });
+        } else {
+          res.status(404).json({ message: "Category not found" });
+        }
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal Server Error", error: error.message });
+      }
+    });
+    app.get('/news/:id', async (req, res) => {
+      const id = req.params.id;
+      console.log(id);
+      const query = { _id: new ObjectId(id) }; // Use ObjectId to convert the id parameter
+      const result = await newsCollection.findOne(query);
+      res.send(result);
     });
     
 
