@@ -228,6 +228,13 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/tools/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await toolsCollection.findOne(query);
+      res.send(result);
+    });
+
     app.get('/news', async (req, res) => {
       const result = await newsCollection.find().toArray();
       res.send(result);
