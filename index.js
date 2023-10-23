@@ -238,10 +238,7 @@ async function run() {
       res.send(result);
     });
 
-
-    app.get("/sub/:SubCategory", async (req, res) => {
-
-      app.get("/news/:id", async (req, res) => {
+    app.get("/news/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await newsCollection.findOne(query);
