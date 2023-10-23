@@ -42,7 +42,7 @@ async function run() {
     const subcategoryCollection = client.db("goodtools").collection("subcategory");
     const toolsCollection = client.db("goodtools").collection("tools");
     const newsCollection = client.db("goodtools").collection("news");
-
+    const reviewsCollection = client.db("goodtools").collection("reviews");
     // Category Post
 
     app.post("/category", async (req, res) => {
@@ -115,6 +115,7 @@ async function run() {
     });
 
     app.post("/newnews", upload.single('image'), async (req, res) => {
+      console.log(req.body);
       const data = { ...req.body, image: req.file ? req.file.path.replace(/uploads\\/g, '') : '' }
       const result = await newsCollection.insertOne(data);
       res.send(result)
@@ -130,6 +131,15 @@ async function run() {
         user = { stat: false };
       }
       res.send(user)
+
+    });
+
+    app.post("/review", async (req, res) => {
+      const data = req.body;
+      console.log(data);
+      const result = await reviewsCollection.insertOne(data);
+      console.log(result);
+      res.send(result)
 
     });
 
@@ -232,6 +242,24 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await toolsCollection.findOne(query);
+      res.send(result);
+    });
+
+    app.get("/review/:productId/:userEmail", async (req, res) => {
+      const id = req.params.productId;
+      const email = req.params.userEmail;
+      const result = await reviewsCollection.findOne({productId : id, userEmail : email});
+      if(result === null){
+        res.send(true);
+      } else {
+        res.send(false)
+      }
+    });
+
+    app.get("/reviews/:productId", async (req, res) => {
+      const id = req.params.productId;
+      const result = await reviewsCollection.find({productId: id}).toArray();
+      console.log(result);
       res.send(result);
     });
 
