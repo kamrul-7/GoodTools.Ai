@@ -3,7 +3,7 @@ const cors = require('cors');
 const app = express()
 const { ObjectId } = require('mongodb');
 const { MongoClient, ServerApiVersion } = require('mongodb');
-const port = 3000
+const port = 3000 || process.env.PORT
 
 
 const multer = require('multer')
@@ -20,7 +20,6 @@ const storage = multer.diskStorage({
   }
 })
 const upload = multer({ storage: storage })
-console.log()
 
 const uri = "mongodb+srv://goodtoolsai:aitoolsgood@cluster0.jjqth1v.mongodb.net/?retryWrites=true&w=majority";
 
@@ -62,13 +61,11 @@ async function run() {
     app.post("/subcategory", async (req, res) => {
       const item = req.body;
       const result = await subcategoryCollection.insertOne(item);
-      console.log(result);
       res.send(result);
     });
 
     // Post a new Tool 
     app.post("/newtool", upload.single('image'), async (req, res) => {
-      console.log(req.body);
       const subs = req.body.SubCategory.split(',');
       req.body.SubCategory = subs;
       let parentCategory = []
@@ -83,7 +80,6 @@ async function run() {
           .then(async () => {
             const data = { ...req.body, image: req.file ? req.file.path.replace(/uploads\\/g, '') : '', parentCategories : parentCategory }
             const result = await toolsCollection.insertOne(data);
-            console.log(result);
             res.send(result)
           })
       }
@@ -92,9 +88,7 @@ async function run() {
 
     app.post("/newnews", upload.single('image'), async (req, res) => {
       const data = { ...req.body, image: req.file ? req.file.path.replace(/uploads\\/g, '') : '' }
-      console.log(data);
       const result = await newsCollection.insertOne(data);
-      console.log(result);
       res.send(result)
 
     });
@@ -125,7 +119,6 @@ async function run() {
           }
         }
       ]).toArray();
-      console.log(result);
     })
 
     app.get('/sublist', async (req,res)=>{
@@ -137,7 +130,6 @@ async function run() {
           }
         }
       ]).toArray();
-      console.log(result);
       res.send(result)
     })
 
@@ -192,7 +184,6 @@ async function run() {
       }))
       .then(data => {
           const results = [...data]
-          console.log(results);
           res.send(results);
       })
     });
@@ -205,25 +196,22 @@ async function run() {
 
     app.get('/subcategory', async (req, res) => {
       const result = await subcategoryCollection.find().toArray();
-      console.log(result);
       res.send(result);
     });
 
     app.get('/tools', async (req, res) => {
       const result = await toolsCollection.find().toArray();
-      console.log(result);
       res.send(result);
     });
 
     app.get('/news', async (req, res) => {
       const result = await newsCollection.find().toArray();
-      console.log(result);
       res.send(result);
     });
 
-    app.get("/subtools/:SubCategory", async (req, res) => {
+    app.get("/sub/:SubCategory", async (req, res) => {
       const SubCategory = req.params.SubCategory;
-      const result = await toolsCollection.find({SubCategory: SubCategory}).toArray();
+      const result = await subcategoryCollection.find({Title: SubCategory}).toArray();
       res.send(result);
     });
 
@@ -256,7 +244,6 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const updatedCategory = req.body; // Assumes the request body contains updated category data
-    console.log(updatedCategory);
       try {
         const result = await categoryCollection.updateOne(query, { $set: updatedCategory });
         if (result.matchedCount > 0) {
@@ -273,7 +260,6 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const updatedCategory = req.body; // Assumes the request body contains updated category data
-    console.log(updatedCategory);
       try {
         const result = await subcategoryCollection.updateOne(query, { $set: updatedCategory });
         if (result.matchedCount > 0) {
