@@ -52,6 +52,34 @@ async function run() {
       res.send(result);
     });
 
+    app.delete("/category/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await categoryCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    app.delete('/users/:id', async (req, res) => {
+      const userId = req.params.id;
+
+      try {
+        if (!ObjectId.isValid(userId)) {
+          return res.status(400).json({ error: 'Invalid user ID' });
+        }
+
+        const result = await usersCollection.deleteOne({ _id: ObjectId(userId) });
+
+        if (result.deletedCount === 1) {
+          return res.json({ message: 'User deleted successfully' });
+        } else {
+          return res.status(404).json({ error: 'User not found' });
+        }
+      } catch (error) {
+        console.error(error);
+        return res.status(500).json({ error: 'Internal server error' });
+      }
+    });
+
     app.post("/users", async (req, res) => {
       const item = req.body;
       const result = await usersCollection.insertOne(item);
@@ -202,7 +230,8 @@ async function run() {
       const result = await usersCollection.find().toArray();
       res.send(result);
     });
-
+    
+    
     app.get('/subcategory', async (req, res) => {
       const result = await subcategoryCollection.find().toArray();
       console.log(result);
@@ -220,6 +249,15 @@ async function run() {
       console.log(result);
       res.send(result);
     });
+
+
+      app.get("/news/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await newsCollection.findOne(query);
+      res.send(result);
+    });
+    
 
     app.get("/subtools/:SubCategory", async (req, res) => {
       const SubCategory = req.params.SubCategory;
