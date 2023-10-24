@@ -1,5 +1,6 @@
 const express = require('express')
 const cors = require('cors');
+const fs = require('fs');
 const app = express()
 const { ObjectId } = require('mongodb');
 const { MongoClient, ServerApiVersion } = require('mongodb');
@@ -119,6 +120,29 @@ async function run() {
       const data = { ...req.body, image: req.file ? req.file.path.replace(/uploads\\/g, '') : '' }
       const result = await newsCollection.insertOne(data);
       res.send(result)
+
+    });
+
+    app.post("/editnews", upload.single('image'), async (req, res) => {
+
+      const data = { ...req.body, image: req.file ? req.file.path.replace(/uploads\\/g, '') : req.body.imageId}
+
+      // The following code is to delete existing image from server
+      if(req.file){
+        console.log('./uploads/'+req.body.imageId);
+        fs.unlink('./uploads/'+req.body.imageId, (err) => {
+          if (err) {
+            console.error(err);
+          } else {
+            console.log('File deleted successfully');
+          }
+        })
+      }
+
+      // Sajib your work is to update newsusing the data
+      // const result = await newsCollection.insertOne(data);
+      // res.send(result)
+      console.log(data);
 
     });
 
