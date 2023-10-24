@@ -145,15 +145,6 @@ async function run() {
 
     // All gets starts from here
 
-    app.get('/test', async (req, res) => {
-      const x = "<p></p><img src=\"https://images.unsplash.com/photo-1575936123452-b67c3203c357\" alt=\"undefined\" style=\"height: auto;width: auto\"/><p></p>"
-      res.send(x)
-    })
-
-    app.post('/test', async (req, res) => {
-      console.log(req.body);
-    })
-
     app.get('/sublist', async (req, res) => {
       const result = await subcategoryCollection.aggregate([
         {
