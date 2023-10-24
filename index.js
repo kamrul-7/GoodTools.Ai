@@ -125,7 +125,32 @@ async function run() {
 
     app.post("/editnews", upload.single('image'), async (req, res) => {
 
-      const data = { ...req.body, image: req.file ? req.file.path.replace(/uploads\\/g, '') : req.body.imageId}
+      const {imageId, ...filteredData} = req.body
+      const data = { ...filteredData, image: req.file ? req.file.path.replace(/uploads\\/g, '') : req.body.imageId}
+
+      // The following code is to delete existing image from server
+      if(req.file){
+        console.log('./uploads/'+req.body.imageId);
+        fs.unlink('./uploads/'+req.body.imageId, (err) => {
+          if (err) {
+            console.error(err);
+          } else {
+            console.log('File deleted successfully');
+          }
+        })
+      }
+
+      // Sajib your work is to update newsusing the data
+      // const result = await newsCollection.insertOne(data);
+      // res.send(result)
+      console.log(data);
+
+    });
+
+    app.post("/edittool", upload.single('image'), async (req, res) => {
+
+      const {imageId, ...filteredData} = req.body 
+      const data = { ...filteredData, image: req.file ? req.file.path.replace(/uploads\\/g, '') : req.body.imageId}
 
       // The following code is to delete existing image from server
       if(req.file){
