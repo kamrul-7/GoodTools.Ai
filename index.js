@@ -66,7 +66,7 @@ async function run() {
           return res.status(400).json({ error: 'Invalid user ID' });
         }
 
-        const result = await usersCollection.deleteOne({ _id: ObjectId(userId) });
+        const result = await usersCollection.deleteOne({ _id: new ObjectId(userId) });
 
         if (result.deletedCount === 1) {
           return res.json({ message: 'User deleted successfully' });
@@ -230,13 +230,6 @@ async function run() {
 
     app.get('/tools', async (req, res) => {
       const result = await toolsCollection.find().toArray();
-      res.send(result);
-    });
-
-    app.get("/tools/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const result = await toolsCollection.findOne(query);
       res.send(result);
     });
 
