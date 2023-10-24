@@ -1,5 +1,6 @@
 const express = require('express')
 const cors = require('cors');
+const fs = require('fs');
 const app = express()
 const { ObjectId } = require('mongodb');
 const { MongoClient, ServerApiVersion } = require('mongodb');
@@ -42,7 +43,7 @@ async function run() {
     const subcategoryCollection = client.db("goodtools").collection("subcategory");
     const toolsCollection = client.db("goodtools").collection("tools");
     const newsCollection = client.db("goodtools").collection("news");
-
+    const reviewsCollection = client.db("goodtools").collection("reviews");
     // Category Post
 
     app.post("/category", async (req, res) => {
@@ -106,7 +107,7 @@ async function run() {
           }
         }))
           .then(async () => {
-            const data = { ...req.body, image: req.file ? req.file.path.replace(/uploads\\/g, '') : '', parentCategories : parentCategory }
+            const data = { ...req.body, image: req.file ? req.file.path.replace(/uploads\\/g, '') : '', parentCategories: parentCategory }
             const result = await toolsCollection.insertOne(data);
             res.send(result)
           })
@@ -115,41 +116,85 @@ async function run() {
     });
 
     app.post("/newnews", upload.single('image'), async (req, res) => {
+      console.log(req.body);
       const data = { ...req.body, image: req.file ? req.file.path.replace(/uploads\\/g, '') : '' }
       const result = await newsCollection.insertOne(data);
       res.send(result)
 
     });
 
+    app.post("/editnews", upload.single('image'), async (req, res) => {
+
+      const {imageId, ...filteredData} = req.body
+      const data = { ...filteredData, image: req.file ? req.file.path.replace(/uploads\\/g, '') : req.body.imageId}
+
+      // The following code is to delete existing image from server
+      if(req.file){
+        console.log('./uploads/'+req.body.imageId);
+        fs.unlink('./uploads/'+req.body.imageId, (err) => {
+          if (err) {
+            console.error(err);
+          } else {
+            console.log('File deleted successfully');
+          }
+        })
+      }
+
+      // Sajib your work is to update newsusing the data
+      // const result = await newsCollection.insertOne(data);
+      // res.send(result)
+      console.log(data);
+
+    });
+
+    app.post("/edittool", upload.single('image'), async (req, res) => {
+
+      const {imageId, ...filteredData} = req.body 
+      const data = { ...filteredData, image: req.file ? req.file.path.replace(/uploads\\/g, '') : req.body.imageId}
+
+      // The following code is to delete existing image from server
+      if(req.file){
+        console.log('./uploads/'+req.body.imageId);
+        fs.unlink('./uploads/'+req.body.imageId, (err) => {
+          if (err) {
+            console.error(err);
+          } else {
+            console.log('File deleted successfully');
+          }
+        })
+      }
+
+      // Sajib your work is to update newsusing the data
+      // const result = await newsCollection.insertOne(data);
+      // res.send(result)
+      console.log(data);
+
+    });
+
     app.post("/getuser", async (req, res) => {
-       const result = await usersCollection.findOne({email : req.body.email, password : req.body.password});
-       let user = null;
-       if(result){
-         user = {name : result.userName, email: result.email, role : result.userType, stat : true}
-       } else{
-        user = {stat : false};
-       }
-       res.send(user)
+      const result = await usersCollection.findOne({ email: req.body.email, password: req.body.password });
+      let user = null;
+      if (result) {
+        user = { name: result.userName, email: result.email, role: result.userType, stat: true }
+      } else {
+        user = { stat: false };
+      }
+      res.send(user)
+
+    });
+
+    app.post("/review", async (req, res) => {
+      const data = req.body;
+      console.log(data);
+      const result = await reviewsCollection.insertOne(data);
+      console.log(result);
+      res.send(result)
 
     });
 
     // All gets starts from here
 
-    app.get('/test', async (req,res)=>{
-      const result = await toolsCollection.aggregate([
-        {
-          $unwind: "$parentCategories" // Unwind the parentCategories array to create one document per category
-        },
-        {
-          $group: {
-            _id: "$parentCategories", // Group by category
-            count: { $sum: 1 }   // Count the number of documents in each group
-          }
-        }
-      ]).toArray();
-    })
-
-    app.get('/sublist', async (req,res)=>{
+    app.get('/sublist', async (req, res) => {
       const result = await subcategoryCollection.aggregate([
         {
           $group: {
@@ -167,7 +212,7 @@ async function run() {
       let totalToolsCount = [];
 
       // Get the nuber of tool for all category
-       totalToolsCount = await toolsCollection.aggregate([
+      totalToolsCount = await toolsCollection.aggregate([
         {
           $unwind: "$parentCategories" // Unwind the parentCategories array to create one document per category
         },
@@ -203,17 +248,17 @@ async function run() {
         // Find the number of tools for each category
         const stat = totalToolsCount.find(category => category._id === data.Title);
         let ct = 0;
-        if(stat){
+        if (stat) {
           ct = stat.count
         }
 
         // add the result and return the result
         return { ...data, subCount: c, toolsCount: ct };
       }))
-      .then(data => {
+        .then(data => {
           const results = [...data]
           res.send(results);
-      })
+        })
     });
 
 
@@ -221,8 +266,8 @@ async function run() {
       const result = await usersCollection.find().toArray();
       res.send(result);
     });
-    
-    
+
+
     app.get('/subcategory', async (req, res) => {
       const result = await subcategoryCollection.find().toArray();
       res.send(result);
@@ -233,6 +278,31 @@ async function run() {
       res.send(result);
     });
 
+
+    app.get("/tools/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await toolsCollection.findOne(query);
+      res.send(result);
+    });
+
+    app.get("/review/:productId/:userEmail", async (req, res) => {
+      const id = req.params.productId;
+      const email = req.params.userEmail;
+      const result = await reviewsCollection.findOne({productId : id, userEmail : email});
+      if(result === null){
+        res.send(true);
+      } else {
+        res.send(false)
+      }
+    });
+
+    app.get("/reviews/:productId", async (req, res) => {
+      const id = req.params.productId;
+      const result = await reviewsCollection.find({productId: id}).toArray();
+      console.log(result);
+      res.send(result);
+    });
     app.get('/news', async (req, res) => {
       const result = await newsCollection.find().toArray();
       res.send(result);
@@ -244,12 +314,12 @@ async function run() {
       const result = await newsCollection.findOne(query);
       res.send(result);
     });
-    
+
 
     app.get("/subtools/:SubCategory", async (req, res) => {
 
       const SubCategory = req.params.SubCategory;
-      const result = await subcategoryCollection.find({Title: SubCategory}).toArray();
+      const result = await subcategoryCollection.find({ Title: SubCategory }).toArray();
       res.send(result);
     });
 
@@ -258,7 +328,7 @@ async function run() {
       const totalSubCategories = await subcategoryCollection.countDocuments();
       const totalTools = await toolsCollection.countDocuments();
       const totalNews = await newsCollection.countDocuments();
-      const result = {totalCategories : totalCategories, totalSubCategories : totalSubCategories, totalTools : totalTools, totalNews : totalNews};
+      const result = { totalCategories: totalCategories, totalSubCategories: totalSubCategories, totalTools: totalTools, totalNews: totalNews };
       res.send(result);
     });
 
@@ -277,7 +347,7 @@ async function run() {
       const result = await categoryCollection.deleteOne(query);
       res.send(result);
     });
-  
+
     app.put("/category/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
@@ -314,7 +384,7 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const updatedUser = req.body; // Assumes the request body contains updated category data
-    console.log(updatedUser);
+      console.log(updatedUser);
       try {
         const result = await usersCollection.updateOne(query, { $set: updatedUser });
         if (result.matchedCount > 0) {
@@ -334,7 +404,7 @@ async function run() {
       const result = await newsCollection.findOne(query);
       res.send(result);
     });
-    
+
 
 
 
