@@ -123,51 +123,91 @@ async function run() {
 
     });
 
-    app.post("/editnews", upload.single('image'), async (req, res) => {
+    app.put("/editnews", upload.single('image'), async (req, res) => {
 
-      const {imageId, ...filteredData} = req.body
-      const data = { ...filteredData, image: req.file ? req.file.path.replace(/uploads\\/g, '') : req.body.imageId}
+      const { imageId, newsId, ...filteredData } = req.body
+      const data = { ...filteredData, image: req.file ? req.file.path.replace(/uploads\\/g, '') : req.body.imageId }
 
-      // The following code is to delete existing image from server
-      if(req.file){
-        console.log('./uploads/'+req.body.imageId);
-        fs.unlink('./uploads/'+req.body.imageId, (err) => {
-          if (err) {
-            console.error(err);
-          } else {
-            console.log('File deleted successfully');
+      const id = req.body.newsId;
+      const query = { _id: new ObjectId(id) };
+      const updatedNews = data;
+      try {
+        const result = await newsCollection.updateOne(query, { $set: updatedNews });
+        if (result.matchedCount > 0) {
+
+          //The following code is to delete existing image from server
+          if(req.file){
+            fs.unlink('./uploads/'+req.body.imageId, (err) => {
+              if (err) {
+                console.error(err);
+              } else {
+                console.log('Previous image deleted successfully');
+              }
+            })
           }
-        })
-      }
 
-      // Sajib your work is to update newsusing the data
-      // const result = await newsCollection.insertOne(data);
-      // res.send(result)
-      console.log(data);
+          console.log('news updated');
+          res.send(result)
+        } else {
+          console.log('news not found');
+          res.send("News not found");
+        }
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Internal Server Error", error: error.message });
+      }
 
     });
+    
+    app.put("/edittool", upload.single('image'), async (req, res) => {
 
-    app.post("/edittool", upload.single('image'), async (req, res) => {
-
-      const {imageId, ...filteredData} = req.body 
-      const data = { ...filteredData, image: req.file ? req.file.path.replace(/uploads\\/g, '') : req.body.imageId}
-
-      // The following code is to delete existing image from server
-      if(req.file){
-        console.log('./uploads/'+req.body.imageId);
-        fs.unlink('./uploads/'+req.body.imageId, (err) => {
-          if (err) {
-            console.error(err);
-          } else {
-            console.log('File deleted successfully');
+      const subs = req.body.SubCategory.split(',');
+      req.body.SubCategory = subs;
+      let parentCategory = []
+      if (subs) {
+        Promise.all(subs.map(async (value, index) => {
+          // Getting all the categories for the subcategories tagged for each new tool
+          const result = await subcategoryCollection.find({ SubCategory: value }).toArray()
+          if (result.length > 0 && !parentCategory.includes(result[0].category)) {
+            parentCategory.push(result[0].category)
           }
-        })
+        }))
+          .then(async () => {
+            const { imageId, toolId, ...filteredData } = req.body
+            const data = { ...filteredData, parentCategories: parentCategory, image: req.file ? req.file.path.replace(/uploads\\/g, '') : req.body.imageId }
+            const id = req.body.toolId;
+            const query = { _id: new ObjectId(id) };
+            const updatedTool = data;
+      
+            try {
+              const result = await toolsCollection.updateOne(query, { $set: updatedTool });
+              if (result.matchedCount > 0) {
+      
+                //The following code is to delete existing image from server
+                if(req.file){
+                  fs.unlink('./uploads/'+req.body.imageId, (err) => {
+                    if (err) {
+                      console.error(err);
+                    } else {
+                      console.log('Previous image deleted successfully');
+                    }
+                  })
+                }
+      
+                console.log('Tool updated');
+                res.send(result)
+              } else {
+                console.log('Tool not found');
+                res.send("Tool not found");
+              }
+            } catch (error) {
+              console.error(error);
+              res.status(500).json({ message: "Internal Server Error", error: error.message });
+            }
+          })
+      } else {
+        res.status(500).json({ message: "Internal Server Error", error: error.message });
       }
-
-      // Sajib your work is to update newsusing the data
-      // const result = await newsCollection.insertOne(data);
-      // res.send(result)
-      console.log(data);
 
     });
 
@@ -289,8 +329,8 @@ async function run() {
     app.get("/review/:productId/:userEmail", async (req, res) => {
       const id = req.params.productId;
       const email = req.params.userEmail;
-      const result = await reviewsCollection.findOne({productId : id, userEmail : email});
-      if(result === null){
+      const result = await reviewsCollection.findOne({ productId: id, userEmail: email });
+      if (result === null) {
         res.send(true);
       } else {
         res.send(false)
@@ -299,7 +339,7 @@ async function run() {
 
     app.get("/reviews/:productId", async (req, res) => {
       const id = req.params.productId;
-      const result = await reviewsCollection.find({productId: id}).toArray();
+      const result = await reviewsCollection.find({ productId: id }).toArray();
       console.log(result);
       res.send(result);
     });
