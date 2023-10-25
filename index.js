@@ -48,8 +48,14 @@ async function run() {
 
     app.post("/category", async (req, res) => {
       const item = req.body;
-      const result = await categoryCollection.insertOne(item);
-      res.send(result);
+      const availability = await categoryCollection.findOne({ Title: req.body.Title });
+      if (availability) {
+        res.send({ stat: true })
+      } else {
+        const result = await categoryCollection.insertOne(item);
+        res.send(result);
+      }
+
     });
 
     app.delete("/category/:id", async (req, res) => {
@@ -66,21 +72,40 @@ async function run() {
       const result = await subcategoryCollection.deleteOne(query);
       res.send(result);
     });
-    app.delete("/tools/:id", async (req, res) => {
+    app.delete("/tools/:id/:img", async (req, res) => {
       const id = req.params.id;
-      console.log(id);
       const query = { _id: new ObjectId(id) };
       const result = await toolsCollection.deleteOne(query);
+      if (result.acknowledged && result.deletedCount > 0) {
+        //The following code is to delete existing image from server
+        fs.unlink('./uploads/' + req.params.img, (err) => {
+          if (err) {
+            console.error(err);
+          } else {
+            console.log(req.params.img + ' image deleted successfully');
+          }
+        })
+      }
       res.send(result);
     });
-    app.delete("/news/:id", async (req, res) => {
+    app.delete("/news/:id/:img", async (req, res) => {
       const id = req.params.id;
       console.log(id);
       const query = { _id: new ObjectId(id) };
       const result = await newsCollection.deleteOne(query);
+      if (result.acknowledged && result.deletedCount > 0) {
+        //The following code is to delete existing image from server
+        fs.unlink('./uploads/' + req.params.img, (err) => {
+          if (err) {
+            console.error(err);
+          } else {
+            console.log(req.params.img + ' image deleted successfully');
+          }
+        })
+      }
       res.send(result);
     });
-    
+
     app.delete('/users/:id', async (req, res) => {
       const userId = req.params.id;
 
@@ -111,8 +136,13 @@ async function run() {
     // SunCategory Post
     app.post("/subcategory", async (req, res) => {
       const item = req.body;
-      const result = await subcategoryCollection.insertOne(item);
-      res.send(result);
+      const availability = await subcategoryCollection.findOne({ Title : req.body.Title, category : req.body.category });
+      if (availability) {
+        res.send({ stat: true })
+      } else {
+        const result = await subcategoryCollection.insertOne(item);
+        res.send(result);
+      }
     });
 
     // Post a new Tool 
@@ -129,7 +159,7 @@ async function run() {
           }
         }))
           .then(async () => {
-            const data = { ...req.body, image: req.file ? req.file.path.replace(/uploads\\/g, '') : '', parentCategories: parentCategory }
+            const data = { ...req.body, image: req.file ? req.file.path.replace(/^uploads[\\\/]/g, '') : '', parentCategories: parentCategory }
             const result = await toolsCollection.insertOne(data);
             res.send(result)
           })
@@ -139,7 +169,7 @@ async function run() {
 
     app.post("/newnews", upload.single('image'), async (req, res) => {
       console.log(req.body);
-      const data = { ...req.body, image: req.file ? req.file.path.replace(/uploads\\/g, '') : '' }
+      const data = { ...req.body, image: req.file ? req.file.path.replace(/^uploads[\\\/]/g, '') : '' }
       const result = await newsCollection.insertOne(data);
       res.send(result)
 
@@ -148,7 +178,7 @@ async function run() {
     app.put("/editnews", upload.single('image'), async (req, res) => {
 
       const { imageId, newsId, ...filteredData } = req.body
-      const data = { ...filteredData, image: req.file ? req.file.path.replace(/uploads\\/g, '') : req.body.imageId }
+      const data = { ...filteredData, image: req.file ? req.file.path.replace(/^uploads[\\\/]/g, '') : req.body.imageId }
 
       const id = req.body.newsId;
       const query = { _id: new ObjectId(id) };
@@ -158,8 +188,8 @@ async function run() {
         if (result.matchedCount > 0) {
 
           //The following code is to delete existing image from server
-          if(req.file){
-            fs.unlink('./uploads/'+req.body.imageId, (err) => {
+          if (req.file) {
+            fs.unlink('./uploads/' + req.body.imageId, (err) => {
               if (err) {
                 console.error(err);
               } else {
@@ -180,7 +210,7 @@ async function run() {
       }
 
     });
-    
+
     app.put("/edittool", upload.single('image'), async (req, res) => {
 
       const subs = req.body.SubCategory.split(',');
@@ -196,18 +226,18 @@ async function run() {
         }))
           .then(async () => {
             const { imageId, toolId, ...filteredData } = req.body
-            const data = { ...filteredData, parentCategories: parentCategory, image: req.file ? req.file.path.replace(/uploads\\/g, '') : req.body.imageId }
+            const data = { ...filteredData, parentCategories: parentCategory, image: req.file ? req.file.path.replace(/^uploads[\\\/]/g, '') : req.body.imageId }
             const id = req.body.toolId;
             const query = { _id: new ObjectId(id) };
             const updatedTool = data;
-      
+
             try {
               const result = await toolsCollection.updateOne(query, { $set: updatedTool });
               if (result.matchedCount > 0) {
-      
+
                 //The following code is to delete existing image from server
-                if(req.file){
-                  fs.unlink('./uploads/'+req.body.imageId, (err) => {
+                if (req.file) {
+                  fs.unlink('./uploads/' + req.body.imageId, (err) => {
                     if (err) {
                       console.error(err);
                     } else {
@@ -215,7 +245,7 @@ async function run() {
                     }
                   })
                 }
-      
+
                 console.log('Tool updated');
                 res.send(result)
               } else {
@@ -261,10 +291,11 @@ async function run() {
         {
           $group: {
             _id: '$category',
-            SubCategories: { $addToSet: "$SubCategory" }
+            SubCategories: { $addToSet: "$Title" }
           }
         }
       ]).toArray();
+      console.log(result);
       res.send(result)
     })
 
@@ -367,7 +398,6 @@ async function run() {
 
     app.get('/tools', async (req, res) => {
       const result = await toolsCollection.find().toArray();
-      console.log(result);
       res.send(result);
     });
 
