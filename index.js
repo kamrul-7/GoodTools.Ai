@@ -59,6 +59,28 @@ async function run() {
       res.send(result);
     });
 
+    app.delete("/subcategory/:id", async (req, res) => {
+      const id = req.params.id;
+      console.log(id);
+      const query = { _id: new ObjectId(id) };
+      const result = await subcategoryCollection.deleteOne(query);
+      res.send(result);
+    });
+    app.delete("/tools/:id", async (req, res) => {
+      const id = req.params.id;
+      console.log(id);
+      const query = { _id: new ObjectId(id) };
+      const result = await toolsCollection.deleteOne(query);
+      res.send(result);
+    });
+    app.delete("/news/:id", async (req, res) => {
+      const id = req.params.id;
+      console.log(id);
+      const query = { _id: new ObjectId(id) };
+      const result = await newsCollection.deleteOne(query);
+      res.send(result);
+    });
+    
     app.delete('/users/:id', async (req, res) => {
       const userId = req.params.id;
 
