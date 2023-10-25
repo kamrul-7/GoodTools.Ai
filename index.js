@@ -309,12 +309,43 @@ async function run() {
 
 
     app.get('/subcategory', async (req, res) => {
-      const result = await subcategoryCollection.find().toArray();
-      res.send(result);
+      const subcategories = await subcategoryCollection.find().toArray();
+      let totalToolsCount = [];
+
+      // Get the nuber of tool for all subcategory
+      totalToolsCount = await toolsCollection.aggregate([
+        {
+          $unwind: "$SubCategory" // Unwind the SubCategory array to create one document per category
+        },
+        {
+          $group: {
+            _id: "$SubCategory", // Group by subcategory
+            count: { $sum: 1 }   // Count the number of documents in each group
+          }
+        }
+      ]).toArray()
+      console.log(totalToolsCount);
+      await Promise.all(subcategories.map(async (data) => {
+
+        // Find the number of tools for each category
+        const stat = totalToolsCount.find(subcategory => subcategory._id === data.Title);
+        let ct = 0;
+        if (stat) {
+          ct = stat.count
+        }
+
+        // add the result and return the result
+        return { ...data, toolsCount: ct };
+      }))
+        .then(data => {
+          const results = [...data]
+          res.send(results);
+        })
     });
 
     app.get('/tools', async (req, res) => {
       const result = await toolsCollection.find().toArray();
+      console.log(result);
       res.send(result);
     });
 
