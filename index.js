@@ -48,6 +48,8 @@ async function run() {
 
     app.post("/category", async (req, res) => {
       const item = req.body;
+      req.body.Title = req.body.Title.trim()
+      req.body.catName = req.body.catName.trim()
       const availability = await categoryCollection.findOne({ Title: req.body.Title });
       if (availability) {
         res.send({ stat: true })
@@ -136,6 +138,8 @@ async function run() {
     // SunCategory Post
     app.post("/subcategory", async (req, res) => {
       const item = req.body;
+      req.body.SubCategory = req.body.SubCategory.trim()
+      req.body.Title = req.body.Title.trim()
       const availability = await subcategoryCollection.findOne({ Title : req.body.Title, category : req.body.category });
       if (availability) {
         res.send({ stat: true })
