@@ -1,6 +1,7 @@
 const express = require('express')
 const cors = require('cors');
 const fs = require('fs');
+const dns = require('dns');
 const app = express()
 const { ObjectId } = require('mongodb');
 const { MongoClient, ServerApiVersion } = require('mongodb');
@@ -69,7 +70,6 @@ async function run() {
 
     app.delete("/subcategory/:id", async (req, res) => {
       const id = req.params.id;
-      console.log(id);
       const query = { _id: new ObjectId(id) };
       const result = await subcategoryCollection.deleteOne(query);
       res.send(result);
@@ -92,7 +92,6 @@ async function run() {
     });
     app.delete("/news/:id/:img", async (req, res) => {
       const id = req.params.id;
-      console.log(id);
       const query = { _id: new ObjectId(id) };
       const result = await newsCollection.deleteOne(query);
       if (result.acknowledged && result.deletedCount > 0) {
@@ -172,7 +171,6 @@ async function run() {
     });
 
     app.post("/newnews", upload.single('image'), async (req, res) => {
-      console.log(req.body);
       const data = { ...req.body, image: req.file ? req.file.path.replace(/^uploads[\\\/]/g, '') : '' }
       const result = await newsCollection.insertOne(data);
       res.send(result)
@@ -197,7 +195,7 @@ async function run() {
               if (err) {
                 console.error(err);
               } else {
-                console.log('Previous image deleted successfully');
+                console.log(req.body.imageId+' image deleted successfully');
               }
             })
           }
@@ -245,7 +243,7 @@ async function run() {
                     if (err) {
                       console.error(err);
                     } else {
-                      console.log('Previous image deleted successfully');
+                      console.log(req.body.imageId+' image deleted successfully');
                     }
                   })
                 }
@@ -281,9 +279,7 @@ async function run() {
 
     app.post("/review", async (req, res) => {
       const data = req.body;
-      console.log(data);
       const result = await reviewsCollection.insertOne(data);
-      console.log(result);
       res.send(result)
 
     });
@@ -299,7 +295,6 @@ async function run() {
           }
         }
       ]).toArray();
-      console.log(result);
       res.send(result)
     })
 
@@ -381,7 +376,7 @@ async function run() {
           }
         }
       ]).toArray()
-      console.log(totalToolsCount);
+
       await Promise.all(subcategories.map(async (data) => {
 
         // Find the number of tools for each category
@@ -427,7 +422,7 @@ async function run() {
     app.get("/reviews/:productId", async (req, res) => {
       const id = req.params.productId;
       const result = await reviewsCollection.find({ productId: id }).toArray();
-      console.log(result);
+
       res.send(result);
     });
     app.get('/news', async (req, res) => {
@@ -511,7 +506,6 @@ async function run() {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const updatedUser = req.body; // Assumes the request body contains updated category data
-      console.log(updatedUser);
       try {
         const result = await usersCollection.updateOne(query, { $set: updatedUser });
         if (result.matchedCount > 0) {
@@ -526,7 +520,6 @@ async function run() {
     });
     app.get('/news/:id', async (req, res) => {
       const id = req.params.id;
-      console.log(id);
       const query = { _id: new ObjectId(id) }; // Use ObjectId to convert the id parameter
       const result = await newsCollection.findOne(query);
       res.send(result);
@@ -560,9 +553,8 @@ async function run() {
 }
 run().catch(console.dir);
 
-
 app.get('/', (req, res) => {
-  res.send('Hello World!')
+  res.send('Hello World!\n')
 })
 
 app.listen(port, () => {
