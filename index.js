@@ -18,7 +18,7 @@ const storage = multer.diskStorage({
     cb(null, './uploads')
   },
   filename: function (req, file, cb) {
-    cb(null, file.originalname + '_' + new Date().toISOString().replace(/:/g, '-'))
+    cb(null, new Date().toISOString().replace(/:/g, '-') + '_' + file.originalname)
   }
 })
 const upload = multer({ storage: storage })
@@ -150,24 +150,23 @@ async function run() {
 
     // Post a new Tool 
     app.post("/newtool", upload.single('image'), async (req, res) => {
-      console.log(req.file.path);
-      // const subs = req.body.SubCategory.split(',');
-      // req.body.SubCategory = subs;
-      // let parentCategory = []
-      // if (subs) {
-      //   Promise.all(subs.map(async (value, index) => {
-      //     // Getting all the categories for the subcategories tagged for each new tool
-      //     const result = await subcategoryCollection.find({ SubCategory: value }).toArray()
-      //     if (result.length > 0 && !parentCategory.includes(result[0].category)) {
-      //       parentCategory.push(result[0].category)
-      //     }
-      //   }))
-      //     .then(async () => {
-      //       const data = { ...req.body, image: req.file ? req.file.path.replace(/^uploads[\\\/]/g, '') : '', parentCategories: parentCategory }
-      //       const result = await toolsCollection.insertOne(data);
-      //       res.send(result)
-      //     })
-      // }
+      const subs = req.body.SubCategory.split(',');
+      req.body.SubCategory = subs;
+      let parentCategory = []
+      if (subs) {
+        Promise.all(subs.map(async (value, index) => {
+          // Getting all the categories for the subcategories tagged for each new tool
+          const result = await subcategoryCollection.find({ SubCategory: value }).toArray()
+          if (result.length > 0 && !parentCategory.includes(result[0].category)) {
+            parentCategory.push(result[0].category)
+          }
+        }))
+          .then(async () => {
+            const data = { ...req.body, image: req.file ? req.file.path.replace(/^uploads[\\\/]/g, '') : '', parentCategories: parentCategory }
+            const result = await toolsCollection.insertOne(data);
+            res.send(result)
+          })
+      }
 
     });
 
