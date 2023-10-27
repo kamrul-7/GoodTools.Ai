@@ -70,6 +70,18 @@ async function run() {
       res.send({ totalCategory: result });
     });
 
+    app.get("/totalSubCategory", async (req, res) => {
+      const result = await subcategoryCollection.estimatedDocumentCount();
+      res.send({ totalSubCategory: result });
+    });
+    app.get("/totalTools", async (req, res) => {
+      const result = await toolsCollection.estimatedDocumentCount();
+      res.send({ totalTools: result });
+    });
+
+
+
+
     app.delete("/category/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
@@ -145,7 +157,7 @@ async function run() {
       res.send(result);
     });
 
-    // SunCategory Post
+    // SubCategory Post
     app.post("/subcategory", async (req, res) => {
       const item = req.body;
       req.body.SubCategory = req.body.SubCategory.trim()
@@ -162,23 +174,23 @@ async function run() {
     // Post a new Tool 
     app.post("/newtool", upload.single('image'), async (req, res) => {
       console.log(req.file.path);
-      // const subs = req.body.SubCategory.split(',');
-      // req.body.SubCategory = subs;
-      // let parentCategory = []
-      // if (subs) {
-      //   Promise.all(subs.map(async (value, index) => {
-      //     // Getting all the categories for the subcategories tagged for each new tool
-      //     const result = await subcategoryCollection.find({ SubCategory: value }).toArray()
-      //     if (result.length > 0 && !parentCategory.includes(result[0].category)) {
-      //       parentCategory.push(result[0].category)
-      //     }
-      //   }))
-      //     .then(async () => {
-      //       const data = { ...req.body, image: req.file ? req.file.path.replace(/^uploads[\\\/]/g, '') : '', parentCategories: parentCategory }
-      //       const result = await toolsCollection.insertOne(data);
-      //       res.send(result)
-      //     })
-      // }
+      const subs = req.body.SubCategory.split(',');
+      req.body.SubCategory = subs;
+      let parentCategory = []
+      if (subs) {
+        Promise.all(subs.map(async (value, index) => {
+          // Getting all the categories for the subcategories tagged for each new tool
+          const result = await subcategoryCollection.find({ SubCategory: value }).toArray()
+          if (result.length > 0 && !parentCategory.includes(result[0].category)) {
+            parentCategory.push(result[0].category)
+          }
+        }))
+          .then(async () => {
+            const data = { ...req.body, image: req.file ? req.file.path.replace(/^uploads[\\\/]/g, '') : '', parentCategories: parentCategory }
+            const result = await toolsCollection.insertOne(data);
+            res.send(result)
+          })
+      }
 
     });
 
@@ -321,7 +333,7 @@ async function run() {
 
     // Get all categories
     app.get("/category", async (req, res) => {
-      console.log(req.query);
+      // console.log(req.query);
       const page = parseInt(req.query.page) || 0;
       const limit = parseInt(req.query.limit) || 6;
       const skip = page*limit;
@@ -395,7 +407,16 @@ async function run() {
 
 
     app.get('/subcategory', async (req, res) => {
-      const subcategories = await subcategoryCollection.find().toArray();
+      console.log(req.query)
+      const page = parseInt(req.query.page) || 0;
+      const limit = parseInt(req.query.limit) || 6;
+      const skip = page*limit;
+      const subcategories = await subcategoryCollection
+        .find()
+        .skip(skip)
+        .limit(limit)
+        .toArray();
+
       let totalToolsCount = [];
 
       // Get the nuber of tool for all subcategory
@@ -430,8 +451,15 @@ async function run() {
     });
 
     app.get("/tools", async (req, res) => {
-      const result = await toolsCollection.find().toArray();
-      res.send(result);
+      const page = parseInt(req.query.page) || 0;
+      const limit = parseInt(req.query.limit) || 6;
+      const skip = page*limit;
+      const result = await toolsCollection
+        .find()
+        .skip(skip)
+        .limit(limit)
+        .toArray();
+        res.send(result);
     });
 
     app.get("/tools/:id", async (req, res) => {
