@@ -18,7 +18,7 @@ const storage = multer.diskStorage({
     cb(null, "./uploads");
   },
   filename: function (req, file, cb) {
-    cb(null, file.originalname + '_' + new Date().toISOString().replace(/:/g, '-'))
+    cb(null, new Date().toISOString().replace(/:/g, '-') + '_' + file.originalname)
   }
 })
 const upload = multer({ storage: storage })
@@ -173,7 +173,6 @@ async function run() {
 
     // Post a new Tool 
     app.post("/newtool", upload.single('image'), async (req, res) => {
-      console.log(req.file.path);
       const subs = req.body.SubCategory.split(',');
       req.body.SubCategory = subs;
       let parentCategory = []
