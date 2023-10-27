@@ -1,28 +1,28 @@
-const express = require('express')
-const cors = require('cors');
-const fs = require('fs');
-const app = express()
-const { ObjectId } = require('mongodb');
-const { MongoClient, ServerApiVersion } = require('mongodb');
-const port = 3000 || process.env.PORT
+const express = require("express");
+const cors = require("cors");
+const fs = require("fs");
+const app = express();
+const { ObjectId } = require("mongodb");
+const { MongoClient, ServerApiVersion } = require("mongodb");
+const port = 3000 || process.env.PORT;
 
-
-const multer = require('multer')
+const multer = require("multer");
 app.use(cors());
 app.use(express.json());
-app.use('/uploads/', express.static('uploads'))
+app.use("/uploads/", express.static("uploads"));
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, './uploads')
+    cb(null, "./uploads");
   },
   filename: function (req, file, cb) {
-    cb(null, new Date().toISOString().replace(/:/g, '-') + file.originalname)
-  }
-})
-const upload = multer({ storage: storage })
+    cb(null, new Date().toISOString().replace(/:/g, "-") + file.originalname);
+  },
+});
+const upload = multer({ storage: storage });
 
-const uri = "mongodb+srv://goodtoolsai:aitoolsgood@cluster0.jjqth1v.mongodb.net/?retryWrites=true&w=majority";
+const uri =
+  "mongodb+srv://goodtoolsai:aitoolsgood@cluster0.jjqth1v.mongodb.net/?retryWrites=true&w=majority";
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -30,7 +30,7 @@ const client = new MongoClient(uri, {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
-  }
+  },
 });
 
 async function run() {
@@ -40,7 +40,9 @@ async function run() {
 
     const categoryCollection = client.db("goodtools").collection("category");
     const usersCollection = client.db("goodtools").collection("users");
-    const subcategoryCollection = client.db("goodtools").collection("subcategory");
+    const subcategoryCollection = client
+      .db("goodtools")
+      .collection("subcategory");
     const toolsCollection = client.db("goodtools").collection("tools");
     const newsCollection = client.db("goodtools").collection("news");
     const reviewsCollection = client.db("goodtools").collection("reviews");
@@ -50,6 +52,12 @@ async function run() {
       const item = req.body;
       const result = await categoryCollection.insertOne(item);
       res.send(result);
+    });
+
+    //pagination
+    app.get("/totalCategory", async (req, res) => {
+      const result = await categoryCollection.estimatedDocumentCount();
+      res.send({ totalCategory: result });
     });
 
     app.delete("/category/:id", async (req, res) => {
@@ -80,25 +88,27 @@ async function run() {
       const result = await newsCollection.deleteOne(query);
       res.send(result);
     });
-    
-    app.delete('/users/:id', async (req, res) => {
+
+    app.delete("/users/:id", async (req, res) => {
       const userId = req.params.id;
 
       try {
         if (!ObjectId.isValid(userId)) {
-          return res.status(400).json({ error: 'Invalid user ID' });
+          return res.status(400).json({ error: "Invalid user ID" });
         }
 
-        const result = await usersCollection.deleteOne({ _id: new ObjectId(userId) });
+        const result = await usersCollection.deleteOne({
+          _id: new ObjectId(userId),
+        });
 
         if (result.deletedCount === 1) {
-          return res.json({ message: 'User deleted successfully' });
+          return res.json({ message: "User deleted successfully" });
         } else {
-          return res.status(404).json({ error: 'User not found' });
+          return res.status(404).json({ error: "User not found" });
         }
       } catch (error) {
         console.error(error);
-        return res.status(500).json({ error: 'Internal server error' });
+        return res.status(500).json({ error: "Internal server error" });
       }
     });
 
@@ -115,134 +125,173 @@ async function run() {
       res.send(result);
     });
 
-    // Post a new Tool 
-    app.post("/newtool", upload.single('image'), async (req, res) => {
-      const subs = req.body.SubCategory.split(',');
+    // Post a new Tool
+    app.post("/newtool", upload.single("image"), async (req, res) => {
+      const subs = req.body.SubCategory.split(",");
       req.body.SubCategory = subs;
-      let parentCategory = []
+      let parentCategory = [];
       if (subs) {
-        Promise.all(subs.map(async (value, index) => {
-          // Getting all the categories for the subcategories tagged for each new tool
-          const result = await subcategoryCollection.find({ SubCategory: value }).toArray()
-          if (result.length > 0 && !parentCategory.includes(result[0].category)) {
-            parentCategory.push(result[0].category)
-          }
-        }))
-          .then(async () => {
-            const data = { ...req.body, image: req.file ? req.file.path.replace(/uploads\\/g, '') : '', parentCategories: parentCategory }
-            const result = await toolsCollection.insertOne(data);
-            res.send(result)
+        Promise.all(
+          subs.map(async (value, index) => {
+            // Getting all the categories for the subcategories tagged for each new tool
+            const result = await subcategoryCollection
+              .find({ SubCategory: value })
+              .toArray();
+            if (
+              result.length > 0 &&
+              !parentCategory.includes(result[0].category)
+            ) {
+              parentCategory.push(result[0].category);
+            }
           })
+        ).then(async () => {
+          const data = {
+            ...req.body,
+            image: req.file ? req.file.path.replace(/uploads\\/g, "") : "",
+            parentCategories: parentCategory,
+          };
+          const result = await toolsCollection.insertOne(data);
+          res.send(result);
+        });
       }
-
     });
 
-    app.post("/newnews", upload.single('image'), async (req, res) => {
+    app.post("/newnews", upload.single("image"), async (req, res) => {
       console.log(req.body);
-      const data = { ...req.body, image: req.file ? req.file.path.replace(/uploads\\/g, '') : '' }
+      const data = {
+        ...req.body,
+        image: req.file ? req.file.path.replace(/uploads\\/g, "") : "",
+      };
       const result = await newsCollection.insertOne(data);
-      res.send(result)
-
+      res.send(result);
     });
 
-    app.put("/editnews", upload.single('image'), async (req, res) => {
-
-      const { imageId, newsId, ...filteredData } = req.body
-      const data = { ...filteredData, image: req.file ? req.file.path.replace(/uploads\\/g, '') : req.body.imageId }
+    app.put("/editnews", upload.single("image"), async (req, res) => {
+      const { imageId, newsId, ...filteredData } = req.body;
+      const data = {
+        ...filteredData,
+        image: req.file
+          ? req.file.path.replace(/uploads\\/g, "")
+          : req.body.imageId,
+      };
 
       const id = req.body.newsId;
       const query = { _id: new ObjectId(id) };
       const updatedNews = data;
       try {
-        const result = await newsCollection.updateOne(query, { $set: updatedNews });
+        const result = await newsCollection.updateOne(query, {
+          $set: updatedNews,
+        });
         if (result.matchedCount > 0) {
-
           //The following code is to delete existing image from server
-          if(req.file){
-            fs.unlink('./uploads/'+req.body.imageId, (err) => {
+          if (req.file) {
+            fs.unlink("./uploads/" + req.body.imageId, (err) => {
               if (err) {
                 console.error(err);
               } else {
-                console.log('Previous image deleted successfully');
+                console.log("Previous image deleted successfully");
               }
-            })
+            });
           }
 
-          console.log('news updated');
-          res.send(result)
+          console.log("news updated");
+          res.send(result);
         } else {
-          console.log('news not found');
+          console.log("news not found");
           res.send("News not found");
         }
       } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Internal Server Error", error: error.message });
+        res
+          .status(500)
+          .json({ message: "Internal Server Error", error: error.message });
       }
-
     });
-    
-    app.put("/edittool", upload.single('image'), async (req, res) => {
 
-      const subs = req.body.SubCategory.split(',');
+    app.put("/edittool", upload.single("image"), async (req, res) => {
+      const subs = req.body.SubCategory.split(",");
       req.body.SubCategory = subs;
-      let parentCategory = []
+      let parentCategory = [];
       if (subs) {
-        Promise.all(subs.map(async (value, index) => {
-          // Getting all the categories for the subcategories tagged for each new tool
-          const result = await subcategoryCollection.find({ SubCategory: value }).toArray()
-          if (result.length > 0 && !parentCategory.includes(result[0].category)) {
-            parentCategory.push(result[0].category)
-          }
-        }))
-          .then(async () => {
-            const { imageId, toolId, ...filteredData } = req.body
-            const data = { ...filteredData, parentCategories: parentCategory, image: req.file ? req.file.path.replace(/uploads\\/g, '') : req.body.imageId }
-            const id = req.body.toolId;
-            const query = { _id: new ObjectId(id) };
-            const updatedTool = data;
-      
-            try {
-              const result = await toolsCollection.updateOne(query, { $set: updatedTool });
-              if (result.matchedCount > 0) {
-      
-                //The following code is to delete existing image from server
-                if(req.file){
-                  fs.unlink('./uploads/'+req.body.imageId, (err) => {
-                    if (err) {
-                      console.error(err);
-                    } else {
-                      console.log('Previous image deleted successfully');
-                    }
-                  })
-                }
-      
-                console.log('Tool updated');
-                res.send(result)
-              } else {
-                console.log('Tool not found');
-                res.send("Tool not found");
-              }
-            } catch (error) {
-              console.error(error);
-              res.status(500).json({ message: "Internal Server Error", error: error.message });
+        Promise.all(
+          subs.map(async (value, index) => {
+            // Getting all the categories for the subcategories tagged for each new tool
+            const result = await subcategoryCollection
+              .find({ SubCategory: value })
+              .toArray();
+            if (
+              result.length > 0 &&
+              !parentCategory.includes(result[0].category)
+            ) {
+              parentCategory.push(result[0].category);
             }
           })
-      } else {
-        res.status(500).json({ message: "Internal Server Error", error: error.message });
-      }
+        ).then(async () => {
+          const { imageId, toolId, ...filteredData } = req.body;
+          const data = {
+            ...filteredData,
+            parentCategories: parentCategory,
+            image: req.file
+              ? req.file.path.replace(/uploads\\/g, "")
+              : req.body.imageId,
+          };
+          const id = req.body.toolId;
+          const query = { _id: new ObjectId(id) };
+          const updatedTool = data;
 
+          try {
+            const result = await toolsCollection.updateOne(query, {
+              $set: updatedTool,
+            });
+            if (result.matchedCount > 0) {
+              //The following code is to delete existing image from server
+              if (req.file) {
+                fs.unlink("./uploads/" + req.body.imageId, (err) => {
+                  if (err) {
+                    console.error(err);
+                  } else {
+                    console.log("Previous image deleted successfully");
+                  }
+                });
+              }
+
+              console.log("Tool updated");
+              res.send(result);
+            } else {
+              console.log("Tool not found");
+              res.send("Tool not found");
+            }
+          } catch (error) {
+            console.error(error);
+            res
+              .status(500)
+              .json({ message: "Internal Server Error", error: error.message });
+          }
+        });
+      } else {
+        res
+          .status(500)
+          .json({ message: "Internal Server Error", error: error.message });
+      }
     });
 
     app.post("/getuser", async (req, res) => {
-      const result = await usersCollection.findOne({ email: req.body.email, password: req.body.password });
+      const result = await usersCollection.findOne({
+        email: req.body.email,
+        password: req.body.password,
+      });
       let user = null;
       if (result) {
-        user = { name: result.userName, email: result.email, role: result.userType, stat: true }
+        user = {
+          name: result.userName,
+          email: result.email,
+          role: result.userType,
+          stat: true,
+        };
       } else {
         user = { stat: false };
       }
-      res.send(user)
-
+      res.send(user);
     });
 
     app.post("/review", async (req, res) => {
@@ -250,96 +299,108 @@ async function run() {
       console.log(data);
       const result = await reviewsCollection.insertOne(data);
       console.log(result);
-      res.send(result)
-
+      res.send(result);
     });
 
     // All gets starts from here
 
-    app.get('/sublist', async (req, res) => {
-      const result = await subcategoryCollection.aggregate([
-        {
-          $group: {
-            _id: '$category',
-            SubCategories: { $addToSet: "$SubCategory" }
-          }
-        }
-      ]).toArray();
-      res.send(result)
-    })
+    app.get("/sublist", async (req, res) => {
+      const result = await subcategoryCollection
+        .aggregate([
+          {
+            $group: {
+              _id: "$category",
+              SubCategories: { $addToSet: "$SubCategory" },
+            },
+          },
+        ])
+        .toArray();
+      res.send(result);
+    });
 
     // Get all categories
-    app.get('/category', async (req, res) => {
-      const categories = await categoryCollection.find().toArray();
+    app.get("/category", async (req, res) => {
+      console.log(req.query);
+      const page = parseInt(req.query.page) || 0;
+      const limit = parseInt(req.query.limit) || 6;
+      const skip = page*limit;
+      const categories = await categoryCollection
+        .find()
+        .skip(skip)
+        .limit(limit)
+        .toArray();
       let totalToolsCount = [];
 
       // Get the nuber of tool for all category
-      totalToolsCount = await toolsCollection.aggregate([
-        {
-          $unwind: "$parentCategories" // Unwind the parentCategories array to create one document per category
-        },
-        {
-          $group: {
-            _id: "$parentCategories", // Group by category
-            count: { $sum: 1 }   // Count the number of documents in each group
-          }
-        }
-      ]).toArray()
-
-      // Find the number of subcategories and tools for each category
-      await Promise.all(categories.map(async (data) => {
-
-        // Find the nuber of subcategories for each category
-        const pipelineSub = [
+      totalToolsCount = await toolsCollection
+        .aggregate([
           {
-            $match: {
-              category: data.Title
-            }
+            $unwind: "$parentCategories", // Unwind the parentCategories array to create one document per category
           },
           {
-            $count: "count"
+            $group: {
+              _id: "$parentCategories", // Group by category
+              count: { $sum: 1 }, // Count the number of documents in each group
+            },
+          },
+        ])
+        .toArray();
+
+      // Find the number of subcategories and tools for each category
+      await Promise.all(
+        categories.map(async (data) => {
+          // Find the nuber of subcategories for each category
+          const pipelineSub = [
+            {
+              $match: {
+                category: data.Title,
+              },
+            },
+            {
+              $count: "count",
+            },
+          ];
+          const subCategoriesCount = await subcategoryCollection
+            .aggregate(pipelineSub)
+            .toArray();
+
+          let c = 0;
+          if (subCategoriesCount.length > 0) {
+            c = subCategoriesCount[0].count;
           }
-        ];
-        const subCategoriesCount = await subcategoryCollection.aggregate(pipelineSub).toArray();
 
-        let c = 0;
-        if (subCategoriesCount.length > 0) {
-          c = subCategoriesCount[0].count;
-        }
+          // Find the number of tools for each category
+          const stat = totalToolsCount.find(
+            (category) => category._id === data.Title
+          );
+          let ct = 0;
+          if (stat) {
+            ct = stat.count;
+          }
 
-        // Find the number of tools for each category
-        const stat = totalToolsCount.find(category => category._id === data.Title);
-        let ct = 0;
-        if (stat) {
-          ct = stat.count
-        }
-
-        // add the result and return the result
-        return { ...data, subCount: c, toolsCount: ct };
-      }))
-        .then(data => {
-          const results = [...data]
-          res.send(results);
+          // add the result and return the result
+          return { ...data, subCount: c, toolsCount: ct };
         })
+      ).then((data) => {
+        const results = [...data];
+        res.send(results);
+      });
     });
 
-
-    app.get('/users', async (req, res) => {
+    app.get("/users", async (req, res) => {
       const result = await usersCollection.find().toArray();
       res.send(result);
     });
 
-
-    app.get('/subcategory', async (req, res) => {
+    app.get("/subcategory", async (req, res) => {
       const result = await subcategoryCollection.find().toArray();
       res.send(result);
     });
 
-    app.get('/tools', async (req, res) => {
+    app.get("/tools", async (req, res) => {
       const result = await toolsCollection.find().toArray();
       res.send(result);
     });
-
 
     app.get("/tools/:id", async (req, res) => {
       const id = req.params.id;
@@ -351,11 +412,14 @@ async function run() {
     app.get("/review/:productId/:userEmail", async (req, res) => {
       const id = req.params.productId;
       const email = req.params.userEmail;
-      const result = await reviewsCollection.findOne({ productId: id, userEmail: email });
+      const result = await reviewsCollection.findOne({
+        productId: id,
+        userEmail: email,
+      });
       if (result === null) {
         res.send(true);
       } else {
-        res.send(false)
+        res.send(false);
       }
     });
 
@@ -365,7 +429,7 @@ async function run() {
       console.log(result);
       res.send(result);
     });
-    app.get('/news', async (req, res) => {
+    app.get("/news", async (req, res) => {
       const result = await newsCollection.find().toArray();
       res.send(result);
     });
@@ -377,11 +441,11 @@ async function run() {
       res.send(result);
     });
 
-
     app.get("/subtools/:SubCategory", async (req, res) => {
-
       const SubCategory = req.params.SubCategory;
-      const result = await subcategoryCollection.find({ Title: SubCategory }).toArray();
+      const result = await subcategoryCollection
+        .find({ Title: SubCategory })
+        .toArray();
       res.send(result);
     });
 
@@ -390,7 +454,12 @@ async function run() {
       const totalSubCategories = await subcategoryCollection.countDocuments();
       const totalTools = await toolsCollection.countDocuments();
       const totalNews = await newsCollection.countDocuments();
-      const result = { totalCategories: totalCategories, totalSubCategories: totalSubCategories, totalTools: totalTools, totalNews: totalNews };
+      const result = {
+        totalCategories: totalCategories,
+        totalSubCategories: totalSubCategories,
+        totalTools: totalTools,
+        totalNews: totalNews,
+      };
       res.send(result);
     });
 
@@ -415,7 +484,9 @@ async function run() {
       const query = { _id: new ObjectId(id) };
       const updatedCategory = req.body; // Assumes the request body contains updated category data
       try {
-        const result = await categoryCollection.updateOne(query, { $set: updatedCategory });
+        const result = await categoryCollection.updateOne(query, {
+          $set: updatedCategory,
+        });
         if (result.matchedCount > 0) {
           res.status(200).json({ message: "Category Updated Successfully" });
         } else {
@@ -423,7 +494,9 @@ async function run() {
         }
       } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Internal Server Error", error: error.message });
+        res
+          .status(500)
+          .json({ message: "Internal Server Error", error: error.message });
       }
     });
     app.put("/subcategory/:id", async (req, res) => {
@@ -431,7 +504,9 @@ async function run() {
       const query = { _id: new ObjectId(id) };
       const updatedCategory = req.body; // Assumes the request body contains updated category data
       try {
-        const result = await subcategoryCollection.updateOne(query, { $set: updatedCategory });
+        const result = await subcategoryCollection.updateOne(query, {
+          $set: updatedCategory,
+        });
         if (result.matchedCount > 0) {
           res.status(200).json({ message: "Category Updated Successfully" });
         } else {
@@ -439,7 +514,9 @@ async function run() {
         }
       } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Internal Server Error", error: error.message });
+        res
+          .status(500)
+          .json({ message: "Internal Server Error", error: error.message });
       }
     });
     app.put("/users/:id", async (req, res) => {
@@ -448,7 +525,9 @@ async function run() {
       const updatedUser = req.body; // Assumes the request body contains updated category data
       console.log(updatedUser);
       try {
-        const result = await usersCollection.updateOne(query, { $set: updatedUser });
+        const result = await usersCollection.updateOne(query, {
+          $set: updatedUser,
+        });
         if (result.matchedCount > 0) {
           res.status(200).json({ message: "Category Updated Successfully" });
         } else {
@@ -456,10 +535,12 @@ async function run() {
         }
       } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Internal Server Error", error: error.message });
+        res
+          .status(500)
+          .json({ message: "Internal Server Error", error: error.message });
       }
     });
-    app.get('/news/:id', async (req, res) => {
+    app.get("/news/:id", async (req, res) => {
       const id = req.params.id;
       console.log(id);
       const query = { _id: new ObjectId(id) }; // Use ObjectId to convert the id parameter
@@ -467,27 +548,10 @@ async function run() {
       res.send(result);
     });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    console.log(
+      "Pinged your deployment. You successfully connected to MongoDB!"
+    );
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
@@ -495,11 +559,10 @@ async function run() {
 }
 run().catch(console.dir);
 
-
-app.get('/', (req, res) => {
-  res.send('Hello World!')
-})
+app.get("/", (req, res) => {
+  res.send("Hello World!");
+});
 
 app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
-})
+  console.log(`Example app listening on port ${port}`);
+});
