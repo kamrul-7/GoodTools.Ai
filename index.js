@@ -78,6 +78,10 @@ async function run() {
       const result = await toolsCollection.estimatedDocumentCount();
       res.send({ totalTools: result });
     });
+    app.get("/totalNews", async (req, res) => {
+      const result = await newsCollection.estimatedDocumentCount();
+      res.send({ totalNews: result });
+    });
 
 
 
@@ -489,9 +493,18 @@ async function run() {
       res.send(result);
     });
     app.get("/news", async (req, res) => {
-      const result = await newsCollection.find().toArray();
-      res.send(result);
+      
+      const page = parseInt(req.query.page) || 0;
+      const limit = parseInt(req.query.limit) || 6;
+      const skip = page*limit;
+      const result = await newsCollection
+        .find()
+        .skip(skip)
+        .limit(limit)
+        .toArray();
+        res.send(result);
     });
+    
 
     app.get("/news/:id", async (req, res) => {
       const id = req.params.id;
