@@ -166,6 +166,7 @@ async function run() {
       const item = req.body;
       req.body.SubCategory = req.body.SubCategory.trim()
       req.body.Title = req.body.Title.trim()
+      console.log(req.body);
       const availability = await subcategoryCollection.findOne({ Title : req.body.Title, category : req.body.category });
       if (availability) {
         res.send({ stat: true })
