@@ -54,7 +54,7 @@ async function run() {
       const item = req.body;
       req.body.Title = req.body.Title.trim()
       req.body.catName = req.body.catName.trim()
-      const availability = await categoryCollection.findOne({ Title: req.body.Title });
+      const availability = await categoryCollection.findOne({ catName: req.body.catName });
       if (availability) {
         res.send({ stat: true })
       } else {
@@ -167,7 +167,7 @@ async function run() {
       req.body.SubCategory = req.body.SubCategory.trim()
       req.body.Title = req.body.Title.trim()
       console.log(req.body);
-      const availability = await subcategoryCollection.findOne({ Title : req.body.Title, category : req.body.category });
+      const availability = await subcategoryCollection.findOne({ SubCategory : req.body.SubCategory, category : req.body.category });
       if (availability) {
         res.send({ stat: true })
       } else {
@@ -336,7 +336,7 @@ async function run() {
         {
           $group: {
             _id: '$category',
-            SubCategories: { $addToSet: "$Title" }
+            SubCategories: { $addToSet: "$SubCategory" }
           }
         }
       ]).toArray();
