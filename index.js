@@ -198,6 +198,14 @@ async function run() {
 
     });
 
+    app.get("/relatedtools/:subcategory", async (req,res)=>{
+      const subcategoryString = req.params.subcategory;
+      const subcategories = subcategoryString.split(',');
+      const result = await toolsCollection.find({ SubCategory: {$in: subcategories} }).toArray();
+      console.log(result);
+      res.send(result)
+    })
+
     app.post("/newnews", upload.single('image'), async (req, res) => {
       const data = { ...req.body, image: req.file ? req.file.path.replace(/^uploads[\\\/]/g, '') : '' }
       const result = await newsCollection.insertOne(data);
