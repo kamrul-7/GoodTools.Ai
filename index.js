@@ -166,6 +166,7 @@ async function run() {
       const item = req.body;
       req.body.SubCategory = req.body.SubCategory.trim()
       req.body.Title = req.body.Title.trim()
+      console.log(req.body);
       const availability = await subcategoryCollection.findOne({ Title : req.body.Title, category : req.body.category });
       if (availability) {
         res.send({ stat: true })
@@ -196,6 +197,14 @@ async function run() {
       }
 
     });
+
+    app.get("/relatedtools/:subcategory", async (req,res)=>{
+      const subcategoryString = req.params.subcategory;
+      const subcategories = subcategoryString.split(',');
+      const result = await toolsCollection.find({ SubCategory: {$in: subcategories} }).toArray();
+      console.log(result);
+      res.send(result)
+    })
 
     app.post("/newnews", upload.single('image'), async (req, res) => {
       const data = { ...req.body, image: req.file ? req.file.path.replace(/^uploads[\\\/]/g, '') : '' }
