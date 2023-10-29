@@ -464,6 +464,11 @@ async function run() {
         .toArray();
         res.send(result);
     });
+    
+    app.get("/tool", async (req, res) => {
+      const result = await toolsCollection.find().toArray();
+      res.send(result);
+    });
 
     app.get("/tools/:id", async (req, res) => {
       const id = req.params.id;
