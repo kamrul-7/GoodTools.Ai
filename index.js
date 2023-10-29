@@ -417,7 +417,10 @@ async function run() {
       res.send(result);
     });
 
-
+    app.get('/allsubcategories', async (req,res)=>{
+      const subcategories = await subcategoryCollection.find().toArray();
+      res.send(subcategories)
+    })
     app.get('/subcategory', async (req, res) => {
       console.log(req.query)
       const page = parseInt(req.query.page) || 0;
