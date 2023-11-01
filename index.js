@@ -2,6 +2,8 @@ const express = require('express')
 const cors = require('cors');
 const fs = require('fs');
 const dns = require('dns');
+const path = require('path');
+const say = require('say')
 const app = express()
 const { ObjectId } = require('mongodb');
 const { MongoClient, ServerApiVersion } = require('mongodb');
@@ -12,6 +14,7 @@ const multer = require("multer");
 app.use(cors());
 app.use(express.json());
 app.use("/uploads/", express.static("uploads"));
+app.use("/audioFiles/", express.static("audioFiles"));
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -34,6 +37,38 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   },
 });
+
+function getVoices() {
+  return new Promise((resolve) => {
+    say.getInstalledVoices((err, voice) => {
+      return resolve(voice)
+    })
+  })
+}
+
+
+const storeAudio = async (text, filename) => {
+  const voicesList = await getVoices();
+  if (voicesList) {
+    return new Promise((resolve) => {
+      const folderPath = path.join(__dirname, 'audioFiles');
+      if (!fs.existsSync(folderPath)) {
+        fs.mkdirSync(folderPath);
+      }
+      const fileName = `${new Date().toISOString().replace(/:/g, '-') + '_' + filename}.wav`;
+      const outputFile = path.join(folderPath, fileName);
+
+      say.export(text.replace(/<\/?[^>]+(>|$)/g, ""), voicesList ? voicesList[0] : 'Microsoft David Desktop - English (United States)', 1, outputFile, function (err) {
+        if (err) {
+          console.error(err);
+          // reject(err);
+        }
+        console.log(`Audio file saved as ${outputFile}`);
+        resolve(fileName);
+      });
+    });
+  }
+}
 
 async function run() {
   try {
@@ -63,6 +98,8 @@ async function run() {
       }
 
     });
+
+
 
     //pagination
     app.get("/totalCategory", async (req, res) => {
@@ -167,7 +204,7 @@ async function run() {
       req.body.SubCategory = req.body.SubCategory.trim()
       req.body.Title = req.body.Title.trim()
       console.log(req.body);
-      const availability = await subcategoryCollection.findOne({ SubCategory : req.body.SubCategory, category : req.body.category });
+      const availability = await subcategoryCollection.findOne({ SubCategory: req.body.SubCategory, category: req.body.category });
       if (availability) {
         res.send({ stat: true })
       } else {
@@ -190,32 +227,39 @@ async function run() {
           }
         }))
           .then(async () => {
-            const data = { ...req.body, image: req.file ? req.file.path.replace(/^uploads[\\\/]/g, '') : '', parentCategories: parentCategory }
+            const descriptionPath = await storeAudio(req.body.description, `Tool_Description_${req.body.toolName}`)
+            const usagesPath = await storeAudio(req.body.works, `Tool_Usages_${req.body.toolName}`)
+            const data = { ...req.body, image: req.file ? req.file.path.replace(/^uploads[\\\/]/g, '') : '', parentCategories: parentCategory, descriptionPath: descriptionPath, usagesPath: usagesPath }
+            console.log(data);
             const result = await toolsCollection.insertOne(data);
             res.send(result)
+
+
           })
       }
 
     });
 
-    app.get("/relatedtools/:subcategory", async (req,res)=>{
+    app.get("/relatedtools/:subcategory", async (req, res) => {
       const subcategoryString = req.params.subcategory;
       const subcategories = subcategoryString.split(',');
-      const result = await toolsCollection.find({ SubCategory: {$in: subcategories} }).toArray();
+      const result = await toolsCollection.find({ SubCategory: { $in: subcategories } }).toArray();
       console.log(result);
       res.send(result)
     })
 
     app.post("/newnews", upload.single('image'), async (req, res) => {
-      const data = { ...req.body, image: req.file ? req.file.path.replace(/^uploads[\\\/]/g, '') : '' }
+      const newsBodyPath = await storeAudio(req.body.newsBody, `News_Description_${req.body.newsTitle.replace(/[\\/:*?"<>|]/g, '_')}`)
+      const data = { ...req.body, image: req.file ? req.file.path.replace(/^uploads[\\\/]/g, '') : '', newsBodyPath: newsBodyPath }
       const result = await newsCollection.insertOne(data);
       res.send(result);
     });
 
     app.put("/editnews", upload.single('image'), async (req, res) => {
-
+      const preNewsPath = req.body.newsBodyPath
       const { imageId, newsId, ...filteredData } = req.body
-      const data = { ...filteredData, image: req.file ? req.file.path.replace(/^uploads[\\\/]/g, '') : req.body.imageId }
+      const newsBodyPath = await storeAudio(req.body.newsBody, `News_Description_${req.body.newsTitle.replace(/[\\/:*?"<>|]/g, '_')}`)
+      const data = { ...filteredData, image: req.file ? req.file.path.replace(/^uploads[\\\/]/g, '') : req.body.imageId, newsBodyPath: newsBodyPath }
 
       const id = req.body.newsId;
       const query = { _id: new ObjectId(id) };
@@ -231,10 +275,19 @@ async function run() {
               if (err) {
                 console.error(err);
               } else {
-                console.log(req.body.imageId+' image deleted successfully');
+                console.log(req.body.imageId + ' image deleted successfully');
               }
             });
           }
+
+          //The following code is to delete existing image from server
+          fs.unlink('./audioFiles/' + preNewsPath, (err) => {
+            if (err) {
+              console.error(err);
+            } else {
+              console.log(preNewsPath + ' audio file deleted successfully');
+            }
+          });
 
           console.log("news updated");
           res.send(result);
@@ -265,7 +318,12 @@ async function run() {
         }))
           .then(async () => {
             const { imageId, toolId, ...filteredData } = req.body
-            const data = { ...filteredData, parentCategories: parentCategory, image: req.file ? req.file.path.replace(/^uploads[\\\/]/g, '') : req.body.imageId }
+            const preDes = req.body.descriptionPath;
+            const preWork = req.body.usagesPath;
+            console.log(req.body);
+            const descriptionPath = await storeAudio(req.body.description, `Tool_Description_${req.body.toolName}`)
+            const usagesPath = await storeAudio(req.body.works, `Tool_Usages_${req.body.toolName}`)
+            const data = { ...filteredData, parentCategories: parentCategory, image: req.file ? req.file.path.replace(/^uploads[\\\/]/g, '') : req.body.imageId, descriptionPath: descriptionPath, usagesPath: usagesPath }
             const id = req.body.toolId;
             const query = { _id: new ObjectId(id) };
             const updatedTool = data;
@@ -280,10 +338,27 @@ async function run() {
                     if (err) {
                       console.error(err);
                     } else {
-                      console.log(req.body.imageId+' image deleted successfully');
+                      console.log(req.body.imageId + ' image deleted successfully');
                     }
                   })
                 }
+
+                //The following code is to delete existing audio from server
+                fs.unlink('./audioFiles/' + preDes, (err) => {
+                  if (err) {
+                    console.error(err);
+                  } else {
+                    console.log(preDes + ' audio file deleted successfully');
+                  }
+                })
+
+                fs.unlink('./audioFiles/' + preWork, (err) => {
+                  if (err) {
+                    console.error(err);
+                  } else {
+                    console.log(preWork + ' audio file deleted successfully');
+                  }
+                })
 
                 console.log('Tool updated');
                 res.send(result)
@@ -348,7 +423,7 @@ async function run() {
       // console.log(req.query);
       const page = parseInt(req.query.page) || 0;
       const limit = parseInt(req.query.limit) || 6;
-      const skip = page*limit;
+      const skip = page * limit;
       const categories = await categoryCollection
         .find()
         .skip(skip)
@@ -417,7 +492,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get('/allsubcategories', async (req,res)=>{
+    app.get('/allsubcategories', async (req, res) => {
       const subcategories = await subcategoryCollection.find().toArray();
       res.send(subcategories)
     })
@@ -425,7 +500,7 @@ async function run() {
       console.log(req.query)
       const page = parseInt(req.query.page) || 0;
       const limit = parseInt(req.query.limit) || 6;
-      const skip = page*limit;
+      const skip = page * limit;
       const subcategories = await subcategoryCollection
         .find()
         .skip(skip)
@@ -468,15 +543,15 @@ async function run() {
     app.get("/tools", async (req, res) => {
       const page = parseInt(req.query.page) || 0;
       const limit = parseInt(req.query.limit) || 6;
-      const skip = page*limit;
+      const skip = page * limit;
       const result = await toolsCollection
         .find()
         .skip(skip)
         .limit(limit)
         .toArray();
-        res.send(result);
+      res.send(result);
     });
-    
+
     app.get("/tool", async (req, res) => {
       const result = await toolsCollection.find().toArray();
       res.send(result);
@@ -510,18 +585,18 @@ async function run() {
       res.send(result);
     });
     app.get("/news", async (req, res) => {
-      
+
       const page = parseInt(req.query.page) || 0;
       const limit = parseInt(req.query.limit) || 6;
-      const skip = page*limit;
+      const skip = page * limit;
       const result = await newsCollection
         .find()
         .skip(skip)
         .limit(limit)
         .toArray();
-        res.send(result);
+      res.send(result);
     });
-    
+
 
     app.get("/news/:id", async (req, res) => {
       const id = req.params.id;
